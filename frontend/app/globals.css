@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --fk-blue: #2874f0;
+  --fk-dark-blue: #1c5ecc;
+  --fk-yellow: #ff9f00;
+  --fk-orange: #fb641b;
+  --fk-green: #388e3c;
+  --fk-light-green: #e8f5e9;
+  --fk-bg: #f1f3f6;
+  --fk-text: #212121;
+  --fk-muted: #878787;
+  --fk-border: #e0e0e0;
+}
+
+body {
+  background-color: #f1f3f6;
+  color: #212121;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Flipkart Specific Badge Styles */
+.fk-assured-badge {
+  background: linear-gradient(135deg, #1f49a3 0%, #0d2a6b 100%);
+  color: #ffffff;
+  font-style: italic;
+  font-weight: 800;
+  border-radius: 3px;
+  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+}
+
+.fk-assured-badge span {
+  color: #ff9f00;
+}
+
+/* Star rating pill */
+.rating-pill-green {
+  background-color: #388e3c;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Button hover transitions */
+.fk-btn-yellow {
+  background-color: #ff9f00;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+.fk-btn-yellow:hover {
+  background-color: #e68f00;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.fk-btn-orange {
+  background-color: #fb641b;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+.fk-btn-orange:hover {
+  background-color: #e5530a;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.25);
+}
