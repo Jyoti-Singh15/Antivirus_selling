@@ -3,9 +3,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem, Product, ProductVariant, Order } from "@/types";
 
+const API_BASE_URL =
+  process.env.NEXT_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://antivirus-selling.onrender.com/api";
+
 interface CartContextType {
   cart: CartItem[];
-  wishlist: string[]; // product ids
+  wishlist: string[];
   orders: Order[];
   addToCart: (product: Product, variant: ProductVariant, quantity?: number) => void;
   removeFromCart: (productId: string, variantId: string) => void;
@@ -132,39 +137,73 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createOrder = (customerDetails: { name: string; email: string; phone: string; paymentMethod: string }): Order => {
     const orderId = "ORD-" + Math.floor(100000 + Math.random() * 900000);
+    const orderNumber = "FK-" + Math.floor(10000000 + Math.random() * 90000000);
+
+    const orderItems = cart.map((item) => {
+      const keys: string[] = [];
+      for (let i = 0; i < item.quantity; i++) {
+        keys.push(generateLicenseKey(item.product.brand));
+      }
+      return {
+        productId: item.product.id,
+        productTitle: item.product.title,
+        productImage: item.product.images[0],
+        brand: item.product.brand,
+        variant: item.selectedVariant,
+        quantity: item.quantity,
+        pricePerUnit: item.selectedVariant.sellingPrice,
+        licenseKeys: keys,
+        officialDownloadUrl: item.product.officialDownloadUrl,
+      };
+    });
+
     const newOrder: Order = {
       id: orderId,
-      orderNumber: "FK-" + Math.floor(10000000 + Math.random() * 90000000),
+      orderNumber,
       createdAt: new Date().toISOString(),
       customerName: customerDetails.name,
       customerEmail: customerDetails.email,
       customerPhone: customerDetails.phone,
       paymentMethod: customerDetails.paymentMethod,
       paymentStatus: "SUCCESS",
-      items: cart.map((item) => {
-        const keys: string[] = [];
-        for (let i = 0; i < item.quantity; i++) {
-          keys.push(generateLicenseKey(item.product.brand));
-        }
-        return {
-          productId: item.product.id,
-          productTitle: item.product.title,
-          productImage: item.product.images[0],
-          brand: item.product.brand,
-          variant: item.selectedVariant,
-          quantity: item.quantity,
-          pricePerUnit: item.selectedVariant.sellingPrice,
-          licenseKeys: keys,
-          officialDownloadUrl: item.product.officialDownloadUrl,
-        };
-      }),
+      items: orderItems,
       subtotal: cartSubtotal,
       discount: cartTotalSavings,
       tax: 0,
       totalAmount: cartSubtotal,
     };
 
+    // Save locally
     setOrders((prev) => [newOrder, ...prev]);
+
+    // Send to live Backend API asynchronously
+    try {
+      fetch(`${API_BASE_URL}/orders/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: customerDetails.name,
+          customerEmail: customerDetails.email,
+          paymentMethod: customerDetails.paymentMethod,
+          items: cart.map((item) => ({
+            productId: item.product.id,
+            variantId: item.selectedVariant.id,
+            variant: item.selectedVariant,
+            quantity: item.quantity,
+            pricePerUnit: item.selectedVariant.sellingPrice,
+            productTitle: item.product.title,
+            productImage: item.product.images[0],
+            brand: item.product.brand,
+            officialDownloadUrl: item.product.officialDownloadUrl,
+          })),
+        }),
+      }).catch((e) => console.warn("Backend checkout sync warning:", e));
+    } catch (err) {
+      console.warn("Could not reach backend checkout endpoint:", err);
+    }
+
     clearCart();
     return newOrder;
   };

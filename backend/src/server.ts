@@ -19,12 +19,10 @@ connectDB();
 // Middlewares
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      process.env.CLIENT_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
-    ],
+    origin: (origin, callback) => {
+      // Allow all origins (localhost, Vercel deployments, mobile apps, etc.)
+      callback(null, true);
+    },
     credentials: true,
   })
 );

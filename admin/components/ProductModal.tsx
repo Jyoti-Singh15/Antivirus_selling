@@ -432,21 +432,47 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, pro
               })}
             </div>
 
-            {/* Notification Badge of Pre-filled data */}
-            <div className="mt-3 flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-sky-100 text-xs text-slate-600">
-              <div className="flex items-center gap-1.5 overflow-hidden">
-                <span className="text-emerald-500 text-sm">✓</span>
-                <span className="text-[11px] truncate">
-                  Official Download URL: <strong className="text-sky-700">{officialDownloadUrl}</strong>
-                </span>
+            {/* Fixed Brand Image Preview Card */}
+            <div className="mt-3 p-3 bg-white rounded-xl border border-sky-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl || BRAND_PRESETS[brand].imageUrl}
+                    alt={brand}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-800">{brand} Official Image</span>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
+                      ✓ Fixed & Auto-Prefilled
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    No need to re-upload. Fixed high-resolution product artwork is automatically applied.
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-[11px] text-sky-600 font-semibold hover:underline shrink-0 ml-2"
-              >
-                {showAdvanced ? "Hide Pre-filled Details" : "View / Edit Specs"}
-              </button>
+
+              <div className="text-right shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-[11px] text-sky-600 font-semibold hover:underline"
+                >
+                  {showAdvanced ? "Hide Details" : "View / Edit Specs"}
+                </button>
+              </div>
+            </div>
+
+            {/* Notification Badge of Official Download URL */}
+            <div className="mt-2 flex items-center gap-1.5 bg-sky-50/70 px-3 py-1.5 rounded-lg border border-sky-100 text-xs text-slate-600">
+              <span className="text-emerald-500 text-sm font-bold">✓</span>
+              <span className="text-[11px] truncate">
+                Official Download Link: <strong className="text-sky-700">{officialDownloadUrl}</strong>
+              </span>
             </div>
           </div>
 

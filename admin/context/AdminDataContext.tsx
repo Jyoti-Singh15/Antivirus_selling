@@ -42,15 +42,15 @@ export interface AdminDataContextType {
   customers: Customer[];
 
   // Product Actions
-  addProduct: (product: Omit<Product, "id">) => void;
-  updateProduct: (product: Product) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 
   // Key Actions
-  addSingleKey: (keyData: SingleKeyInput) => void;
-  addBulkKeys: (productId: string, variantId: string, rawKeys: string[]) => BulkKeyResult;
-  deleteKey: (id: string) => void;
-  updateKeyStatus: (id: string, status: KeyStatus) => void;
+  addSingleKey: (keyData: SingleKeyInput) => Promise<void>;
+  addBulkKeys: (productId: string, variantId: string, rawKeys: string[]) => Promise<BulkKeyResult>;
+  deleteKey: (id: string) => Promise<void>;
+  updateKeyStatus: (id: string, status: KeyStatus) => Promise<void>;
 
   // Order Actions
   updateOrderStatus: (orderId: string, status: PaymentStatus) => void;
@@ -58,6 +58,7 @@ export interface AdminDataContextType {
 
   // Utilities
   resetToDefaults: () => void;
+  refreshData: () => Promise<void>;
 
   // Computed / Analytics
   metrics: AdminMetrics;
@@ -66,6 +67,10 @@ export interface AdminDataContextType {
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
 
 const STORAGE_KEY = "antivirus_admin_store_v2";
+const API_BASE_URL =
+  process.env.NEXT_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://antivirus-selling.onrender.com/api";
 
 const ALLOWED_BRANDS: Brand[] = ["Quick Heal", "Kaspersky", "Norton", "McAfee", "Bitdefender"];
 
@@ -76,7 +81,31 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from local storage
+  // Fetch live data from backend with fallback
+  const fetchLiveData = async () => {
+    try {
+      // 1. Fetch live products from backend
+      const prodRes = await fetch(`${API_BASE_URL}/products`);
+      if (prodRes.ok) {
+        const prodData = await prodRes.json();
+        if (prodData.success && Array.isArray(prodData.products) && prodData.products.length > 0) {
+          const validProds = prodData.products
+            .map((p: any) => ({
+              ...p,
+              id: p._id || p.id,
+            }))
+            .filter((p: Product) => ALLOWED_BRANDS.includes(p.brand));
+          if (validProds.length > 0) {
+            setProducts(validProds);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Backend products sync skipped, using local data store.", e);
+    }
+  };
+
+  // Load from local storage and then sync with live backend
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -94,6 +123,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error("Failed to load admin data from storage", e);
     } finally {
       setIsLoaded(true);
+      fetchLiveData();
     }
   }, []);
 
@@ -107,7 +137,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           products,
           keys,
           orders,
-          customers
+          customers,
         })
       );
     } catch (e) {
@@ -116,24 +146,54 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [products, keys, orders, customers, isLoaded]);
 
   // Product CRUD
-  const addProduct = (productData: Omit<Product, "id">) => {
+  const addProduct = async (productData: Omit<Product, "id">) => {
     const newProduct: Product = {
       ...productData,
-      id: `prod-${Date.now()}`
+      id: `prod-${Date.now()}`,
     };
     setProducts((prev) => [newProduct, ...prev]);
+
+    // Async sync to backend
+    try {
+      await fetch(`${API_BASE_URL}/admin/products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productData),
+      });
+    } catch (e) {
+      console.warn("Backend addProduct sync skipped, saved locally.", e);
+    }
   };
 
-  const updateProduct = (updated: Product) => {
+  const updateProduct = async (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+
+    // Async sync to backend
+    try {
+      await fetch(`${API_BASE_URL}/admin/products/${updated.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+    } catch (e) {
+      console.warn("Backend updateProduct sync skipped, updated locally.", e);
+    }
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      await fetch(`${API_BASE_URL}/admin/products/${id}`, {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.warn("Backend deleteProduct sync skipped, removed locally.", e);
+    }
   };
 
   // Key Actions
-  const addSingleKey = (data: SingleKeyInput) => {
+  const addSingleKey = async (data: SingleKeyInput) => {
     const product = products.find((p) => p.id === data.productId);
     const variant = product?.variants.find((v) => v.id === data.variantId);
     const variantLabel = variant ? `${variant.deviceCount} PC / ${variant.durationYears} Year` : "1 PC / 1 Year";
@@ -147,13 +207,28 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       variantLabel,
       status: "AVAILABLE",
       notes: data.notes,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     setKeys((prev) => [newKey, ...prev]);
+
+    // Backend sync
+    try {
+      await fetch(`${API_BASE_URL}/admin/keys/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: data.productId,
+          variantId: data.variantId,
+          keys: [data.keyString],
+        }),
+      });
+    } catch (e) {
+      console.warn("Backend addSingleKey sync skipped, saved locally.", e);
+    }
   };
 
-  const addBulkKeys = (productId: string, variantId: string, rawKeys: string[]): BulkKeyResult => {
+  const addBulkKeys = async (productId: string, variantId: string, rawKeys: string[]): Promise<BulkKeyResult> => {
     const product = products.find((p) => p.id === productId);
     const variant = product?.variants.find((v) => v.id === variantId);
     const variantLabel = variant ? `${variant.deviceCount} PC / ${variant.durationYears} Year` : "1 PC / 1 Year";
@@ -161,6 +236,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const existingKeyStrings = new Set(keys.map((k) => k.keyString.trim().toUpperCase()));
     let duplicates = 0;
     const validKeys: LicenseKey[] = [];
+    const keysToSend: string[] = [];
 
     for (const raw of rawKeys) {
       const clean = raw.trim().toUpperCase();
@@ -170,6 +246,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         continue;
       }
       existingKeyStrings.add(clean);
+      keysToSend.push(clean);
       validKeys.push({
         id: `key-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
         keyString: clean,
@@ -178,7 +255,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         variantId,
         variantLabel,
         status: "AVAILABLE",
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
     }
 
@@ -186,14 +263,38 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setKeys((prev) => [...validKeys, ...prev]);
     }
 
+    // Backend sync
+    if (keysToSend.length > 0) {
+      try {
+        await fetch(`${API_BASE_URL}/admin/keys/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId,
+            variantId,
+            keys: keysToSend,
+          }),
+        });
+      } catch (e) {
+        console.warn("Backend bulk keys sync skipped, added to local state.", e);
+      }
+    }
+
     return { added: validKeys.length, duplicates };
   };
 
-  const deleteKey = (id: string) => {
+  const deleteKey = async (id: string) => {
     setKeys((prev) => prev.filter((k) => k.id !== id));
+    try {
+      await fetch(`${API_BASE_URL}/admin/keys/${id}`, {
+        method: "DELETE",
+      });
+    } catch (e) {
+      console.warn("Backend deleteKey sync skipped, deleted locally.", e);
+    }
   };
 
-  const updateKeyStatus = (id: string, status: KeyStatus) => {
+  const updateKeyStatus = async (id: string, status: KeyStatus) => {
     setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, status } : k)));
   };
 
@@ -242,7 +343,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           variantLabel: `${v.deviceCount} PC / ${v.durationYears} Year`,
           stock,
           productId: p.id,
-          variantId: v.id
+          variantId: v.id,
         });
       }
     });
@@ -256,7 +357,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     totalProducts,
     totalCustomers,
     lowStockCount: lowStockItems.length,
-    lowStockItems
+    lowStockItems,
   };
 
   return (
@@ -276,7 +377,8 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateOrderStatus,
         resendOrderKey,
         resetToDefaults,
-        metrics
+        refreshData: fetchLiveData,
+        metrics,
       }}
     >
       {children}
