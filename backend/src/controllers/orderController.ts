@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { Order } from "../models/Order.js";
+import { Order, IOrderItem } from "../models/Order.js";
 import { LicenseKey } from "../models/LicenseKey.js";
-import { Product } from "../models/Product.js";
 import { Coupon } from "../models/Coupon.js";
 import { AuthenticatedUserRequest } from "../middleware/userAuth.js";
 
@@ -62,7 +61,6 @@ export const validateCoupon = async (req: Request, res: Response): Promise<void>
       discount = coupon.discountValue;
     }
 
-    // Ensure discount does not exceed order value
     discount = Math.min(discount, subtotal);
 
     res.status(200).json({
@@ -102,12 +100,21 @@ export const processCheckout = async (
 
     // Verify stock availability for all items before dedicating keys
     for (const item of items) {
-      const { productId, variantId, quantity = 1, productTitle } = item;
-      const availableKeysCount = await LicenseKey.countDocuments({
-        productId,
+      const productId = item.productId;
+      const variantId = item.variant?.id || item.variantId;
+      const quantity = Number(item.quantity) || 1;
+      const productTitle = item.productTitle || "Product";
+
+      const keyQuery: any = {
         variantId,
         status: "AVAILABLE",
-      });
+      };
+
+      if (mongoose.Types.ObjectId.isValid(productId)) {
+        keyQuery.productId = new mongoose.Types.ObjectId(productId);
+      }
+
+      const availableKeysCount = await LicenseKey.countDocuments(keyQuery);
 
       if (availableKeysCount < quantity) {
         res.status(400).json({
@@ -118,11 +125,9 @@ export const processCheckout = async (
       }
     }
 
-    // Calculate subtotal
     let subtotal = 0;
-    const orderItems: any[] = [];
+    const orderItems: IOrderItem[] = [];
     const allAllocatedKeyDocs: any[] = [];
-
     const orderNumber = generateOrderNumber();
 
     // Perform atomic key reservation and allocation
@@ -130,6 +135,7 @@ export const processCheckout = async (
       const {
         productId,
         variant,
+        variantId: rawVariantId,
         quantity = 1,
         pricePerUnit,
         productTitle,
@@ -138,19 +144,24 @@ export const processCheckout = async (
         officialDownloadUrl,
       } = item;
 
+      const variantId = variant?.id || rawVariantId;
       const itemTotal = Number(pricePerUnit) * Number(quantity);
       subtotal += itemTotal;
 
       const allocatedKeysForItem: string[] = [];
 
-      // Atomically pop and claim keys one by one (FIFO)
-      for (let i = 0; i < quantity; i++) {
+      for (let i = 0; i < Number(quantity); i++) {
+        const findQuery: any = {
+          variantId,
+          status: "AVAILABLE",
+        };
+
+        if (mongoose.Types.ObjectId.isValid(productId)) {
+          findQuery.productId = new mongoose.Types.ObjectId(productId);
+        }
+
         const claimedKey = await LicenseKey.findOneAndUpdate(
-          {
-            productId: new mongoose.Types.ObjectId(productId),
-            variantId: variant.id,
-            status: "AVAILABLE",
-          },
+          findQuery,
           {
             status: "SOLD",
             orderNumber,
@@ -162,7 +173,7 @@ export const processCheckout = async (
         );
 
         if (!claimedKey) {
-          // If a race condition occurred and key wasn't available, rollback any claimed keys
+          // Rollback any claimed keys if an item ran out of stock
           for (const kDoc of allAllocatedKeyDocs) {
             await LicenseKey.findByIdAndUpdate(kDoc._id, {
               status: "AVAILABLE",
@@ -185,18 +196,22 @@ export const processCheckout = async (
         allocatedKeysForItem.push(claimedKey.keyString);
       }
 
+      const targetProductId = mongoose.Types.ObjectId.isValid(productId)
+        ? new mongoose.Types.ObjectId(productId)
+        : new mongoose.Types.ObjectId();
+
       orderItems.push({
-        productId: new mongoose.Types.ObjectId(productId),
-        productTitle,
+        productId: targetProductId,
+        productTitle: productTitle || "Antivirus",
         productImage: productImage || "",
         brand: brand || "Antivirus",
         variant: {
-          id: variant.id,
-          durationYears: Number(variant.durationYears) || 1,
-          deviceCount: Number(variant.deviceCount) || 1,
-          mrp: Number(variant.mrp) || Number(pricePerUnit),
+          id: variantId,
+          durationYears: Number(variant?.durationYears) || 1,
+          deviceCount: Number(variant?.deviceCount) || 1,
+          mrp: Number(variant?.mrp) || Number(pricePerUnit),
           sellingPrice: Number(pricePerUnit),
-          discountPercent: Number(variant.discountPercent) || 0,
+          discountPercent: Number(variant?.discountPercent) || 0,
         },
         quantity: Number(quantity),
         pricePerUnit: Number(pricePerUnit),
@@ -205,7 +220,6 @@ export const processCheckout = async (
       });
     }
 
-    // Apply Coupon discount if provided
     let discount = 0;
     if (couponCode) {
       const coupon = await Coupon.findOne({
@@ -229,10 +243,11 @@ export const processCheckout = async (
 
     const totalAmount = Math.max(0, subtotal - discount);
 
-    // Create and save Order
     const newOrder = new Order({
       orderNumber,
-      userId: req.user ? new mongoose.Types.ObjectId(req.user.userId) : null,
+      userId: req.user && mongoose.Types.ObjectId.isValid(req.user.userId)
+        ? new mongoose.Types.ObjectId(req.user.userId)
+        : undefined,
       customerName: customerName.trim(),
       customerEmail: cleanEmail,
       items: orderItems,
@@ -247,7 +262,6 @@ export const processCheckout = async (
 
     await newOrder.save();
 
-    // Associate orderId on the allocated license keys
     for (const keyDoc of allAllocatedKeyDocs) {
       await LicenseKey.findByIdAndUpdate(keyDoc._id, {
         orderId: newOrder._id,
@@ -259,7 +273,7 @@ export const processCheckout = async (
       message: "Order placed successfully! Your digital license keys are ready.",
       order: {
         ...newOrder.toObject(),
-        id: newOrder._id.toString(),
+        id: (newOrder._id as mongoose.Types.ObjectId).toString(),
       },
     });
   } catch (error: any) {
@@ -277,7 +291,7 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
 
     let query: any = {};
     if (mongoose.Types.ObjectId.isValid(id)) {
-      query._id = id;
+      query._id = new mongoose.Types.ObjectId(id);
     } else {
       query.orderNumber = id;
     }
@@ -297,7 +311,7 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
       success: true,
       order: {
         ...order,
-        id: order._id.toString(),
+        id: ((order as any)._id).toString(),
       },
     });
   } catch (error: any) {
