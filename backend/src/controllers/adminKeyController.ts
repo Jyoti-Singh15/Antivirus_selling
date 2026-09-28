@@ -63,36 +63,47 @@ export const getAdminKeys = async (req: Request, res: Response): Promise<void> =
 
 export const bulkAddKeys = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { productId, variantId, rawKeys, notes } = req.body;
+    const { productId, variantId, rawKeys, keys, keyString, notes } = req.body;
+    const incomingKeys = rawKeys || keys || keyString;
 
-    if (!productId || !variantId || !rawKeys) {
+    if (!productId || !incomingKeys) {
       res.status(400).json({
         success: false,
-        message: "Product ID, Variant ID, and Raw Keys string/list are required.",
+        message: "Product ID and Raw Keys are required.",
       });
       return;
     }
 
-    const product = await Product.findById(productId);
+    let product = null;
+    if (mongoose.Types.ObjectId.isValid(productId)) {
+      product = await Product.findById(productId);
+    }
     if (!product) {
-      res.status(404).json({ success: false, message: "Selected product does not exist." });
+      product = await Product.findOne({
+        $or: [{ _id: productId }, { id: productId }, { slug: productId }, { title: productId }],
+      });
+    }
+
+    if (!product) {
+      res.status(404).json({ success: false, message: "Selected product does not exist in database." });
       return;
     }
 
-    const variant = product.variants.find((v) => v.id === variantId);
-    if (!variant) {
-      res.status(404).json({ success: false, message: "Selected product variant not found." });
-      return;
+    let variant = product.variants.find((v) => v.id === variantId);
+    if (!variant && product.variants.length > 0) {
+      variant = product.variants[0];
     }
+    const targetVariantId = variant ? variant.id : (variantId || "default");
+    const variantLabel = variant
+      ? `${variant.deviceCount} ${variant.deviceCount > 1 ? "Devices" : "Device"} / ${variant.durationYears} ${variant.durationYears > 1 ? "Years" : "Year"}`
+      : "1 Device / 1 Year";
 
-    const variantLabel = `${variant.deviceCount} ${variant.deviceCount > 1 ? "Devices" : "Device"} / ${variant.durationYears} ${variant.durationYears > 1 ? "Years" : "Year"}`;
-
-    // Parse keys from raw text (split by newline, commas, semicolons)
+    // Parse keys from raw text or array
     let parsedKeys: string[] = [];
-    if (Array.isArray(rawKeys)) {
-      parsedKeys = rawKeys;
-    } else if (typeof rawKeys === "string") {
-      parsedKeys = rawKeys
+    if (Array.isArray(incomingKeys)) {
+      parsedKeys = incomingKeys.map((k: any) => String(k).trim()).filter(Boolean);
+    } else if (typeof incomingKeys === "string") {
+      parsedKeys = incomingKeys
         .split(/[\r\n,;]+/)
         .map((k) => k.trim())
         .filter((k) => k.length > 0);
@@ -129,7 +140,7 @@ export const bulkAddKeys = async (req: Request, res: Response): Promise<void> =>
       keyString: key,
       productId: product._id,
       productTitle: product.title,
-      variantId: variant.id,
+      variantId: targetVariantId,
       variantLabel,
       status: "AVAILABLE",
       notes: notes || "",

@@ -4,9 +4,9 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { CartItem, Product, ProductVariant, Order } from "@/types";
 
 const API_BASE_URL =
-  process.env.NEXT_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://antivirus-selling.onrender.com/api";
+  process.env.NEXT_API_URL ||
+  "http://localhost:5000/api";
 
 interface CartContextType {
   cart: CartItem[];

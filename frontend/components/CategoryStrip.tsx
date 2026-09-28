@@ -73,7 +73,7 @@ export const CategoryStrip: React.FC = () => {
               Internet Security
             </span>
             <span className="text-[10px] font-black text-[#2e7d32] bg-emerald-50 px-1.5 py-0.2 rounded-xs border border-emerald-200 mt-0.5 inline-block">
-              From ₹389
+              Web Shield
             </span>
           </Link>
 

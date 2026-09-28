@@ -6,6 +6,11 @@ import { connectDB } from "./config/db.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { Product } from "./models/Product.js";
+import { LicenseKey } from "./models/LicenseKey.js";
+import { Order } from "./models/Order.js";
+import { Coupon } from "./models/Coupon.js";
+import { User } from "./models/User.js";
 
 // Load environment variables
 dotenv.config();
@@ -45,6 +50,22 @@ app.get("/", (req: Request, res: Response) => {
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// System Reset Route for Admin
+app.post("/api/admin/system/reset-all", async (req: Request, res: Response) => {
+  try {
+    await Promise.all([
+      Product.deleteMany({}),
+      LicenseKey.deleteMany({}),
+      Order.deleteMany({}),
+      Coupon.deleteMany({}),
+      User.deleteMany({}),
+    ]);
+    res.status(200).json({ success: true, message: "All store data has been reset to clean state." });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || "Failed to reset data" });
+  }
 });
 
 // API Routes

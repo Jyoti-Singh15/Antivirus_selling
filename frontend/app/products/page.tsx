@@ -2,13 +2,14 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { PRODUCTS_DATA } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { Brand, SecurityCategory, OperatingSystem } from "@/types";
 import { SlidersIcon } from "@/components/Icons";
 
 function ProductsContent() {
+  const { products } = useProducts();
   const searchParams = useSearchParams();
 
   const initialBrand = searchParams.get("brand") as Brand | null;
@@ -51,7 +52,7 @@ function ProductsContent() {
   };
 
   const filteredProducts = useMemo(() => {
-    return PRODUCTS_DATA.filter((product) => {
+    return products.filter((product) => {
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();

@@ -422,46 +422,6 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
         )}
       </div>
 
-      {/* Customer Ratings */}
-      <div className="p-4">
-        <div
-          onClick={() => toggleSection("rating")}
-          className="flex items-center justify-between cursor-pointer mb-3"
-        >
-          <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">
-            Customer Ratings
-          </span>
-          <ChevronDownIcon
-            className={`w-4 h-4 text-gray-500 transition-transform ${
-              openSections.rating ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-
-        {openSections.rating && (
-          <div className="space-y-2">
-            {[4, 3].map((r) => (
-              <label
-                key={r}
-                className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer hover:text-black"
-              >
-                <input
-                  type="radio"
-                  name="ratingFilter"
-                  checked={minRating === r}
-                  onChange={() => setMinRating(minRating === r ? 0 : r)}
-                  onClick={() => minRating === r && setMinRating(0)}
-                  className="text-[#2874f0] focus:ring-[#2874f0]"
-                />
-                <span className="flex items-center gap-1 font-semibold">
-                  {r} <StarIcon className="w-3.5 h-3.5 text-yellow-400" /> & above
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
     </aside>
   );
 };

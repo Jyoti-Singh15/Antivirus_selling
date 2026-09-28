@@ -14,18 +14,20 @@ export const getAdminCustomers = async (req: Request, res: Response): Promise<vo
         }).sort({ createdAt: -1 });
 
         const totalSpent = orders.reduce((sum, ord) => sum + (ord.totalAmount || 0), 0);
-        const lastOrderDate = orders.length > 0 ? orders[0].createdAt.toISOString() : "";
+        const customerPhone = (u as any).phone || (orders.length > 0 ? orders[0].customerPhone : "") || "N/A";
+        const formattedJoined = u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+        const formattedLastOrder = orders.length > 0 && orders[0].createdAt ? new Date(orders[0].createdAt).toISOString().split("T")[0] : "No orders yet";
 
         return {
           id: u._id.toString(),
           name: u.name,
           email: u.email,
-          phone: "",
+          phone: customerPhone,
           totalOrders: orders.length,
           totalSpent,
-          lastOrderDate,
-          createdAt: u.createdAt.toISOString(),
-          status: u.status,
+          lastOrderDate: formattedLastOrder,
+          createdAt: formattedJoined,
+          status: u.status || "ACTIVE",
         };
       })
     );

@@ -66,58 +66,129 @@ export interface AdminDataContextType {
 
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
 
-const STORAGE_KEY = "antivirus_admin_store_v2";
+const STORAGE_KEY = "antivirus_admin_live_data_v5";
 const API_BASE_URL =
-  process.env.NEXT_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://antivirus-selling.onrender.com/api";
+  process.env.NEXT_API_URL ||
+  "http://localhost:5000/api";
 
 const ALLOWED_BRANDS: Brand[] = ["Quick Heal", "Kaspersky", "Norton", "McAfee", "Bitdefender"];
 
 export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [keys, setKeys] = useState<LicenseKey[]>(initialKeys);
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [keys, setKeys] = useState<LicenseKey[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Fetch live data from backend with fallback
+  // Fetch live data from backend
   const fetchLiveData = async () => {
     try {
+      const token = localStorage.getItem("rapiddefend_admin_token_v1");
+      const authHeaders: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+
       // 1. Fetch live products from backend
-      const prodRes = await fetch(`${API_BASE_URL}/products`);
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        if (prodData.success && Array.isArray(prodData.products) && prodData.products.length > 0) {
-          const validProds = prodData.products
-            .map((p: any) => ({
-              ...p,
-              id: p._id || p.id,
-            }))
-            .filter((p: Product) => ALLOWED_BRANDS.includes(p.brand));
-          if (validProds.length > 0) {
-            setProducts(validProds);
+      try {
+        const prodRes = await fetch(`${API_BASE_URL}/products`);
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          if (prodData.success && Array.isArray(prodData.products)) {
+            setProducts(
+              prodData.products.map((p: any) => ({
+                ...p,
+                id: p._id || p.id,
+              }))
+            );
           }
         }
+      } catch (prodErr) {
+        console.warn("Backend products sync skipped:", prodErr);
+      }
+
+      // 2. Fetch live customers from backend
+      try {
+        const custRes = await fetch(`${API_BASE_URL}/admin/customers`, {
+          headers: authHeaders,
+        });
+        if (custRes.ok) {
+          const custData = await custRes.json();
+          if (custData.success && Array.isArray(custData.customers)) {
+            setCustomers(custData.customers);
+          }
+        }
+      } catch (custErr) {
+        console.warn("Backend customers sync skipped:", custErr);
+      }
+
+      // 3. Fetch live orders from backend
+      try {
+        const ordRes = await fetch(`${API_BASE_URL}/admin/orders`, {
+          headers: authHeaders,
+        });
+        if (ordRes.ok) {
+          const ordData = await ordRes.json();
+          if (ordData.success && Array.isArray(ordData.orders)) {
+            setOrders(ordData.orders);
+          }
+        }
+      } catch (ordErr) {
+        console.warn("Backend orders sync skipped:", ordErr);
+      }
+
+      // 4. Fetch live license keys from backend
+      try {
+        const keyRes = await fetch(`${API_BASE_URL}/admin/keys`, {
+          headers: authHeaders,
+        });
+        if (keyRes.ok) {
+          const keyData = await keyRes.json();
+          if (keyData.success && Array.isArray(keyData.keys)) {
+            setKeys(keyData.keys);
+          } else {
+            setKeys([]);
+          }
+        } else {
+          setKeys([]);
+        }
+      } catch (keyErr) {
+        console.warn("Backend keys sync skipped:", keyErr);
       }
     } catch (e) {
-      console.warn("Backend products sync skipped, using local data store.", e);
+      console.warn("Backend live sync completed with local fallbacks.", e);
     }
   };
 
-  // Load from local storage and then sync with live backend
+  // Purge legacy demo keys from browser storage and sync
   useEffect(() => {
     try {
+      // Remove any previously stored demo mock objects
+      const legacyKeys = [
+        "rapiddefend_store_live_v1",
+        "rapiddefend_admin_data",
+        "rapiddefend_admin_data_v2",
+        "rapiddefend_keys_v1",
+        "rapiddefend_products_v1",
+        "rapiddefend_store_live_v2",
+      ];
+      legacyKeys.forEach((k) => localStorage.removeItem(k));
+
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.products && Array.isArray(parsed.products)) {
           const validProducts = parsed.products.filter((p: Product) => ALLOWED_BRANDS.includes(p.brand));
-          setProducts(validProducts.length > 0 ? validProducts : initialProducts);
+          setProducts(validProducts);
         }
-        if (parsed.keys) setKeys(parsed.keys);
-        if (parsed.orders) setOrders(parsed.orders);
-        if (parsed.customers) setCustomers(parsed.customers);
+        if (parsed.keys && Array.isArray(parsed.keys)) setKeys(parsed.keys);
+        if (parsed.orders && Array.isArray(parsed.orders)) setOrders(parsed.orders);
+        if (parsed.customers && Array.isArray(parsed.customers)) setCustomers(parsed.customers);
+      } else {
+        setProducts([]);
+        setKeys([]);
+        setOrders([]);
+        setCustomers([]);
       }
     } catch (e) {
       console.error("Failed to load admin data from storage", e);
@@ -145,6 +216,16 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [products, keys, orders, customers, isLoaded]);
 
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem("rapiddefend_admin_token_v1");
+    return token
+      ? {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        }
+      : { "Content-Type": "application/json" };
+  };
+
   // Product CRUD
   const addProduct = async (productData: Omit<Product, "id">) => {
     const newProduct: Product = {
@@ -155,11 +236,19 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Async sync to backend
     try {
-      await fetch(`${API_BASE_URL}/admin/products`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(productData),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.product) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === newProduct.id ? { ...data.product, id: data.product._id || data.product.id } : p))
+          );
+        }
+      }
     } catch (e) {
       console.warn("Backend addProduct sync skipped, saved locally.", e);
     }
@@ -172,7 +261,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fetch(`${API_BASE_URL}/admin/products/${updated.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(updated),
       });
     } catch (e) {
@@ -186,6 +275,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fetch(`${API_BASE_URL}/admin/products/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
     } catch (e) {
       console.warn("Backend deleteProduct sync skipped, removed locally.", e);
@@ -216,13 +306,16 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fetch(`${API_BASE_URL}/admin/keys/bulk`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           productId: data.productId,
           variantId: data.variantId,
+          rawKeys: [data.keyString],
           keys: [data.keyString],
+          notes: data.notes || "",
         }),
       });
+      fetchLiveData();
     } catch (e) {
       console.warn("Backend addSingleKey sync skipped, saved locally.", e);
     }
@@ -268,13 +361,15 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         await fetch(`${API_BASE_URL}/admin/keys/bulk`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             productId,
             variantId,
+            rawKeys: keysToSend,
             keys: keysToSend,
           }),
         });
+        fetchLiveData();
       } catch (e) {
         console.warn("Backend bulk keys sync skipped, added to local state.", e);
       }
@@ -288,6 +383,7 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fetch(`${API_BASE_URL}/admin/keys/${id}`, {
         method: "DELETE",
+        headers: getAuthHeaders(),
       });
     } catch (e) {
       console.warn("Backend deleteKey sync skipped, deleted locally.", e);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdminData } from "../context/AdminDataContext";
 import { BulkKeyModal } from "../components/BulkKeyModal";
@@ -9,10 +9,14 @@ import { OrderDetailModal } from "../components/OrderDetailModal";
 import { Order } from "../types";
 
 export default function DashboardOverview() {
-  const { metrics, orders, products, keys } = useAdminData();
+  const { metrics, orders, products, keys, refreshData } = useAdminData();
   const [bulkKeyOpen, setBulkKeyOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  useEffect(() => {
+    refreshData();
+  }, []);
 
   // Group keys by Brand to show stock distribution
   const brandDistribution = [
@@ -62,32 +66,7 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Low Stock Alert Strip */}
-      {metrics.lowStockCount > 0 && (
-        <div className="p-4 bg-linear-to-r from-amber-50 via-white to-amber-50/50 rounded-xl border border-amber-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-amber-900">
-                Low Stock Warning: {metrics.lowStockCount} Product Variant(s) have fewer than 3 available keys!
-              </div>
-              <div className="text-[11px] text-amber-700">
-                Customers may experience fulfillment delays if new keys are not vaulted soon.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => setBulkKeyOpen(true)}
-            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors shrink-0"
-          >
-            Vault Keys Now →
-          </button>
-        </div>
-      )}
+
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -102,8 +81,7 @@ export default function DashboardOverview() {
           <div className="mt-3">
             <div className="text-2xl font-black text-slate-900">₹{metrics.totalRevenue.toLocaleString("en-IN")}</div>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-emerald-600 font-semibold">
-              <span>↑ 18.4%</span>
-              <span className="text-slate-400 font-normal">vs last month</span>
+              <span>● Live Revenue Tracking</span>
             </div>
           </div>
         </div>
@@ -157,7 +135,7 @@ export default function DashboardOverview() {
           <div className="mt-3">
             <div className="text-2xl font-black text-slate-900">{metrics.totalProducts}</div>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-sky-600 font-semibold">
-              <span>9 Global Brands</span>
+              <span>Security Catalog</span>
             </div>
           </div>
         </div>
@@ -193,46 +171,54 @@ export default function DashboardOverview() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {orders.slice(0, 5).map((order) => {
-                  const firstItem = order.items[0];
-                  return (
-                    <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                        {order.orderNumber}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900">{order.customerName}</div>
-                        <div className="text-[11px] text-slate-400">{order.customerEmail}</div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-slate-800 line-clamp-1">{firstItem?.productTitle}</div>
-                        <div className="text-[11px] text-sky-700">
-                          {firstItem?.variant.deviceCount} PC(s) • {firstItem?.variant.durationYears} Year(s)
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">₹{order.totalAmount}</td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            order.paymentStatus === "SUCCESS"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-amber-50 text-amber-700 border border-amber-200"
-                          }`}
-                        >
-                          {order.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="px-2.5 py-1 text-[11px] font-semibold text-sky-700 hover:bg-sky-50 rounded border border-sky-200 transition-colors"
-                        >
-                          Inspect
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                      No customer orders recorded yet. Live orders will appear here automatically.
+                    </td>
+                  </tr>
+                ) : (
+                  orders.slice(0, 5).map((order) => {
+                    const firstItem = order.items[0];
+                    return (
+                      <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                          {order.orderNumber}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-slate-900">{order.customerName}</div>
+                          <div className="text-[11px] text-slate-400">{order.customerEmail}</div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-medium text-slate-800 line-clamp-1">{firstItem?.productTitle}</div>
+                          <div className="text-[11px] text-sky-700">
+                            {firstItem?.variant.deviceCount} PC(s) • {firstItem?.variant.durationYears} Year(s)
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-900">₹{order.totalAmount}</td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              order.paymentStatus === "SUCCESS"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}
+                          >
+                            {order.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="px-2.5 py-1 text-[11px] font-semibold text-sky-700 hover:bg-sky-50 rounded border border-sky-200 transition-colors"
+                          >
+                            Inspect
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

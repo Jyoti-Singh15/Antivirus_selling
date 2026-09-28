@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAdminData } from "../../context/AdminDataContext";
 import { BulkKeyModal } from "../../components/BulkKeyModal";
 import { KeyStatus } from "../../types";
 
 export default function LicenseKeyVaultPage() {
-  const { keys, products, deleteKey, updateKeyStatus, metrics } = useAdminData();
+  const { keys, products, deleteKey, updateKeyStatus, metrics, refreshData } = useAdminData();
   const [selectedStatus, setSelectedStatus] = useState<KeyStatus | "ALL">("ALL");
   const [selectedProductId, setSelectedProductId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    refreshData();
+  }, []);
 
   // Filter keys
   const filteredKeys = keys.filter((k) => {
@@ -41,17 +45,26 @@ export default function LicenseKeyVaultPage() {
             Store, audit, and inject digital activation codes for automated real-time customer delivery.
           </p>
         </div>
-        <button
-          onClick={() => setIsBulkModalOpen(true)}
-          className="px-4 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-sm shadow-sky-600/30 transition-all flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          <span>🔑</span>
-          <span>+ Import License Keys</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={() => refreshData()}
+            className="px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1.5"
+          >
+            <span>🔄</span>
+            <span>Sync Live Vault</span>
+          </button>
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="px-4 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-sm shadow-sky-600/30 transition-all flex items-center gap-1.5"
+          >
+            <span>🔑</span>
+            <span>+ Import License Keys</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Inventory Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
           <div className="text-[11px] font-semibold text-slate-400 uppercase">Available in Vault</div>
           <div className="text-xl font-bold text-sky-700 mt-1">{metrics.availableKeys}</div>
@@ -59,12 +72,6 @@ export default function LicenseKeyVaultPage() {
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
           <div className="text-[11px] font-semibold text-slate-400 uppercase">Delivered / Sold</div>
           <div className="text-xl font-bold text-emerald-600 mt-1">{metrics.soldKeys}</div>
-        </div>
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase">Reserved Keys</div>
-          <div className="text-xl font-bold text-amber-600 mt-1">
-            {keys.filter((k) => k.status === "RESERVED").length}
-          </div>
         </div>
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
           <div className="text-[11px] font-semibold text-slate-400 uppercase">Total Keys Tracked</div>
@@ -119,7 +126,7 @@ export default function LicenseKeyVaultPage() {
         {/* Status Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto text-xs pt-1 border-t border-slate-100">
           <span className="text-slate-400 text-[11px] font-semibold uppercase mr-1">Status:</span>
-          {(["ALL", "AVAILABLE", "SOLD", "RESERVED"] as const).map((status) => (
+          {(["ALL", "AVAILABLE", "SOLD"] as const).map((status) => (
             <button
               key={status}
               onClick={() => setSelectedStatus(status)}
@@ -206,9 +213,7 @@ export default function LicenseKeyVaultPage() {
                         className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           key.status === "AVAILABLE"
                             ? "bg-sky-50 text-sky-700 border border-sky-200"
-                            : key.status === "SOLD"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         }`}
                       >
                         {key.status}
@@ -232,23 +237,13 @@ export default function LicenseKeyVaultPage() {
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {key.status !== "SOLD" && (
-                          <button
-                            onClick={() =>
-                              updateKeyStatus(key.id, key.status === "AVAILABLE" ? "RESERVED" : "AVAILABLE")
-                            }
-                            className="px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 rounded border border-slate-200 transition-colors"
-                          >
-                            {key.status === "AVAILABLE" ? "Reserve" : "Make Available"}
-                          </button>
-                        )}
                         <button
                           onClick={() => {
                             if (confirm("Delete this license key from the vault?")) {
                               deleteKey(key.id);
                             }
                           }}
-                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Delete Key"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

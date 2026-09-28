@@ -7,18 +7,19 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { SearchIcon, CartIcon, ShieldCheckIcon, UserIcon, HeartIcon, KeyIcon } from "./Icons";
 import { RapidDefendLogo } from "./RapidDefendLogo";
-import { PRODUCTS_DATA } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 
 export const Navbar: React.FC = () => {
   const router = useRouter();
   const { cartCount, wishlist } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const { products } = useProducts();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const suggestions = searchTerm.trim()
-    ? PRODUCTS_DATA.filter(
+    ? products.filter(
         (p) =>
           p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||

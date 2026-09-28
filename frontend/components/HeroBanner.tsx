@@ -18,72 +18,56 @@ interface BannerSlide {
   glowColor: string;
   accentBadgeColor: string;
   features: string[];
-  visualType: "shield" | "firewall" | "cloud" | "vault";
+  visualType: "shield" | "firewall" | "vault";
 }
 
 const SLIDES: BannerSlide[] = [
   {
     id: 1,
-    badge: "OFFICIAL AUTHORIZED RESELLER",
-    badgeSub: "100% Guaranteed Activation",
-    title: "MEGA ANTIVIRUS & CYBER DEFENSE SALE",
-    subtitle: "Protect your PC, Laptop & Phone against Zero-Day Ransomware, Phishing and Hackers",
-    offer: "UP TO 80% OFF",
-    highlight: "5-Second Instant Digital License Key Delivery to your Screen & Email",
-    ctaText: "EXPLORE TOTAL SECURITY",
-    ctaLink: "/products?category=Total+Security",
+    badge: "OFFICIAL DIGITAL LICENSE RESELLER",
+    badgeSub: "100% Genuine Activation",
+    title: "GENUINE DIGITAL ANTIVIRUS & CYBER DEFENSE",
+    subtitle: "Protect your PC, Laptop & Mobile devices against Zero-Day Ransomware, Malware, and Phishing attacks.",
+    offer: "INSTANT DIGITAL DELIVERY",
+    highlight: "Digital License Keys Delivered Immediately to Screen & Email",
+    ctaText: "EXPLORE ALL PRODUCTS",
+    ctaLink: "/products",
     bgGradient: "from-[#0a1848] via-[#0e2466] to-[#050b1d]",
     glowColor: "rgba(56, 189, 248, 0.25)",
     accentBadgeColor: "bg-yellow-400 text-gray-950",
-    features: ["Instant Key Delivery", "24/7 Activation Support", "Official OEM Links"],
+    features: ["Instant Key Delivery", "Official Download Links", "24/7 Activation Support"],
     visualType: "shield",
   },
   {
     id: 2,
-    badge: "TOP RATED CYBER DEFENSE",
-    badgeSub: "India's #1 Antivirus Suite",
-    title: "KASPERSKY & QUICK HEAL TOTAL SECURITY 2026",
-    subtitle: "Bank-Grade Safe Money Encryption, Ultra-Fast Cloud VPN & Webcam Spyware Shield",
-    offer: "STARTING AT JUST ₹389",
-    highlight: "100% Genuine Retail Activation Codes with Official Setup Downloads",
-    ctaText: "SHOP KASPERSKY & QUICK HEAL",
-    ctaLink: "/products?brand=Kaspersky",
+    badge: "MULTI-DEVICE CYBER DEFENSE",
+    badgeSub: "Windows • Mac • Android • iOS",
+    title: "TOTAL SECURITY, PRIVACY & SAFE NETBANKING",
+    subtitle: "Bank-Grade Encryption, Real-Time Threat Shield & Automated Data Protection for Home and Business.",
+    offer: "100% GENUINE OEM LICENSES",
+    highlight: "Authentic Retail Activation Codes with Official Setup Installers",
+    ctaText: "BROWSE CATALOG",
+    ctaLink: "/products",
     bgGradient: "from-[#04281f] via-[#063e30] to-[#02140e]",
     glowColor: "rgba(52, 211, 153, 0.25)",
     accentBadgeColor: "bg-emerald-400 text-emerald-950",
-    features: ["Ransomware File Shield", "Safe NetBanking", "GoDeep.AI Engine"],
+    features: ["Ransomware Protection", "Safe NetBanking", "Zero PC Slowdown"],
     visualType: "firewall",
   },
   {
     id: 3,
-    badge: "MULTI-DEVICE PROTECTION",
-    badgeSub: "Windows • macOS • Android • iOS",
-    title: "NORTON 360 DELUXE & BITDEFENDER PREMIUM",
-    subtitle: "50GB Secure Cloud Backup + Multi-Device Threat Shield for 1, 3, 5 & 10 Devices",
-    offer: "FLAT 72% DISCOUNT",
-    highlight: "Ranked #1 by Independent Security Labs in 2026 with Zero Slowdown",
-    ctaText: "VIEW NORTON & BITDEFENDER",
-    ctaLink: "/products?brand=Norton",
-    bgGradient: "from-[#351503] via-[#4d1f05] to-[#140601]",
-    glowColor: "rgba(251, 146, 60, 0.25)",
-    accentBadgeColor: "bg-amber-400 text-amber-950",
-    features: ["50GB Cloud Backup", "Unlimited VPN", "Dark Web Monitor"],
-    visualType: "cloud",
-  },
-  {
-    id: 4,
-    badge: "INSTANT AUTOMATED DISPATCH",
+    badge: "AUTOMATED DISPATCH ENGINE",
     badgeSub: "Real-Time License Vault",
-    title: "INSTANT DIGITAL LICENSE KEY VAULT",
-    subtitle: "Get your 25-digit authentic product license key revealed on-screen in under 5 seconds",
-    offer: "UP TO 85% OFF",
-    highlight: "1-Click Copy, Step-by-Step Installation Guide & 24/7 Activation Support",
-    ctaText: "CLAIM INSTANT KEY DEALS",
+    title: "AUTOMATED DIGITAL LICENSE KEY VAULT",
+    subtitle: "Authentic digital activation keys allocated on-screen with step-by-step setup guides.",
+    offer: "OFFICIAL ACTIVATION GUARANTEED",
+    highlight: "Instant 1-Click Copy & Official Download Links",
+    ctaText: "VIEW STORE CATALOG",
     ctaLink: "/products",
     bgGradient: "from-[#082038] via-[#0d345a] to-[#030d17]",
     glowColor: "rgba(14, 165, 233, 0.25)",
     accentBadgeColor: "bg-sky-400 text-sky-950",
-    features: ["FIFO Key Engine", "On-Screen Reveal", "Permanent Vault Record"],
+    features: ["Instant Key Allocation", "On-Screen Reveal", "Official Support"],
     visualType: "vault",
   },
 ];
@@ -117,7 +101,7 @@ export const HeroBanner: React.FC = () => {
       onMouseLeave={() => setIsPaused(false)}
     >
       <div
-        className={`bg-gradient-to-r ${slide.bgGradient} text-white py-8 px-6 sm:px-10 lg:px-14 transition-all duration-700 min-h-[340px] flex flex-col justify-between relative`}
+        className={`bg-gradient-to-r ${slide.bgGradient} text-white py-8 px-6 sm:px-10 lg:px-14 transition-all duration-700 min-h-[320px] flex flex-col justify-between relative`}
         style={{
           boxShadow: `inset 0 0 120px ${slide.glowColor}`,
         }}
@@ -200,14 +184,7 @@ export const HeroBanner: React.FC = () => {
                   <div className="space-y-1">
                     <div className="text-4xl animate-pulse">🔒</div>
                     <div className="text-xs font-bold text-emerald-300 tracking-wider uppercase">Ransomware Blocker</div>
-                    <div className="text-[10px] text-emerald-200 font-mono">ACTIVE SCANNER V26.4</div>
-                  </div>
-                )}
-                {slide.visualType === "cloud" && (
-                  <div className="space-y-1">
-                    <div className="text-4xl animate-bounce">☁️</div>
-                    <div className="text-xs font-bold text-amber-300 tracking-wider uppercase">Multi-Device Cloud</div>
-                    <div className="text-[10px] text-amber-200 font-mono">WINDOWS • MAC • ANDROID</div>
+                    <div className="text-[10px] text-emerald-200 font-mono">ACTIVE SCANNER</div>
                   </div>
                 )}
                 {slide.visualType === "vault" && (
@@ -221,8 +198,8 @@ export const HeroBanner: React.FC = () => {
 
               {/* Bottom Delivery Badge */}
               <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-300 z-10">
-                <span>Dispatch Speed:</span>
-                <span className="text-yellow-400 font-bold font-mono">&lt; 5 Seconds</span>
+                <span>Key Dispatch:</span>
+                <span className="text-yellow-400 font-bold font-mono">Instant & Automated</span>
               </div>
             </div>
           </div>
@@ -231,7 +208,6 @@ export const HeroBanner: React.FC = () => {
 
         {/* CTA Button & Slide Controls */}
         <div className="flex items-center justify-between flex-wrap gap-4 pt-2 z-10">
-          {/* User's Exact Orange CTA Button */}
           <Link
             href={slide.ctaLink}
             className="bg-[#ff9f00] hover:bg-[#e68f00] text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider px-6 sm:px-8 py-3 rounded-xs shadow-md hover:shadow-lg transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-95"
@@ -242,7 +218,6 @@ export const HeroBanner: React.FC = () => {
 
           {/* Carousel Arrows & Dot Indicators */}
           <div className="flex items-center gap-3">
-            {/* Prev Arrow */}
             <button
               onClick={handlePrev}
               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-colors text-xs"
@@ -251,7 +226,6 @@ export const HeroBanner: React.FC = () => {
               ❮
             </button>
 
-            {/* Dots */}
             <div className="flex items-center gap-1.5">
               {SLIDES.map((_, idx) => (
                 <button
@@ -265,7 +239,6 @@ export const HeroBanner: React.FC = () => {
               ))}
             </div>
 
-            {/* Next Arrow */}
             <button
               onClick={handleNext}
               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-colors text-xs"

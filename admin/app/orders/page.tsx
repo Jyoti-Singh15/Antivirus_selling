@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAdminData } from "../../context/AdminDataContext";
 import { OrderDetailModal } from "../../components/OrderDetailModal";
 import { Order, PaymentStatus } from "../../types";
 
 export default function OrdersPage() {
-  const { orders } = useAdminData();
+  const { orders, refreshData } = useAdminData();
   const [selectedStatus, setSelectedStatus] = useState<PaymentStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  useEffect(() => {
+    refreshData();
+  }, []);
 
   // Filter orders
   const filteredOrders = orders.filter((o) => {

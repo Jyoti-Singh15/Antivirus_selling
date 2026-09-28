@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { PRODUCTS_DATA } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
 import {
   StarIcon,
@@ -24,17 +24,36 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const slug = params?.slug as string;
 
-  const product = PRODUCTS_DATA.find((p) => p.slug === slug) || PRODUCTS_DATA[0];
+  const { products, getProductBySlug } = useProducts();
+  const product = getProductBySlug(slug) || products.find((p) => p.slug === slug);
+
+  if (!product) {
+    return (
+      <div className="bg-white rounded-lg p-12 text-center border border-gray-200 shadow-sm max-w-lg mx-auto my-8">
+        <div className="text-4xl mb-3">🛡️</div>
+        <h2 className="text-lg font-bold text-gray-900">Product Not Found</h2>
+        <p className="text-xs text-gray-500 mt-1 mb-6">
+          This antivirus product is currently not listed in our catalog.
+        </p>
+        <Link
+          href="/products"
+          className="fk-btn-yellow px-5 py-2.5 rounded-sm text-xs font-bold uppercase inline-flex items-center gap-1.5"
+        >
+          <span>Browse All Antivirus Products</span>
+        </Link>
+      </div>
+    );
+  }
 
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
   const isWished = isInWishlist(product.id);
 
   // Variant States
   const [selectedDuration, setSelectedDuration] = useState<number>(
-    product.variants[0].durationYears
+    product.variants?.[0]?.durationYears || 1
   );
   const [selectedDevices, setSelectedDevices] = useState<number>(
-    product.variants[0].deviceCount
+    product.variants?.[0]?.deviceCount || 1
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [couponApplied, setCouponApplied] = useState<boolean>(false);
@@ -58,11 +77,15 @@ export default function ProductDetailPage() {
     ? Math.max(activeVariant.sellingPrice - 50, 100)
     : activeVariant.sellingPrice;
 
+  const isVariantOutOfStock = !(activeVariant?.inStock ?? true) || ((activeVariant as any)?.availableKeysCount === 0);
+
   const handleAddToCart = () => {
+    if (isVariantOutOfStock) return;
     addToCart(product, activeVariant, 1);
   };
 
   const handleBuyNow = () => {
+    if (isVariantOutOfStock) return;
     addToCart(product, activeVariant, 1);
     router.push("/checkout");
   };
@@ -118,47 +141,59 @@ export default function ProductDetailPage() {
               {/* Main Image Display */}
               <div className="relative flex-1 bg-gray-50 border border-gray-200 rounded-xs overflow-hidden flex items-center justify-center p-4 min-h-[340px]">
                 
-                {/* Wishlist Button */}
-                <button
-                  onClick={() => toggleWishlist(product.id)}
-                  className="absolute right-3 top-3 z-10 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
-                  title="Save to Wishlist"
-                >
-                  <HeartIcon className="w-5 h-5" filled={isWished} />
-                </button>
-
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={product.images[selectedImageIndex] || product.images[0]}
                   alt={product.title}
-                  className="w-full h-80 object-contain hover:scale-105 transition-transform duration-300"
+                  className={`w-full h-80 object-contain transition-transform duration-300 ${
+                    isVariantOutOfStock ? "opacity-60 grayscale-[30%]" : "hover:scale-105"
+                  }`}
                 />
 
-                <div className="absolute bottom-3 left-3 bg-black/75 text-white text-xs px-2.5 py-1 rounded-xs flex items-center gap-1.5 backdrop-blur-xs">
-                  <ZapIcon className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Instant Electronic License (ESD)</span>
-                </div>
+                {isVariantOutOfStock ? (
+                  <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center">
+                    <span className="bg-red-600 text-white text-sm font-black px-4 py-1.5 rounded-xs uppercase tracking-wider shadow-xl">
+                      SOLD OUT
+                    </span>
+                  </div>
+                ) : (
+                  <div className="absolute bottom-3 left-3 bg-black/75 text-white text-xs px-2.5 py-1 rounded-xs flex items-center gap-1.5 backdrop-blur-xs">
+                    <ZapIcon className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>Instant Electronic License (ESD)</span>
+                  </div>
+                )}
               </div>
 
             </div>
 
-            {/* Sticky Action Buttons (Yellow & Orange Flipkart Style) */}
+            {/* Sticky Action Buttons */}
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button
-                onClick={handleAddToCart}
-                className="fk-btn-yellow py-3.5 px-4 rounded-xs uppercase font-extrabold text-sm flex items-center justify-center gap-2 tracking-wider"
-              >
-                <CartIcon className="w-5 h-5" />
-                <span>Add to Cart</span>
-              </button>
+              {isVariantOutOfStock ? (
+                <button
+                  disabled
+                  className="col-span-2 bg-gray-200 text-gray-500 py-3.5 px-4 rounded-xs uppercase font-extrabold text-sm flex items-center justify-center gap-2 tracking-wider cursor-not-allowed"
+                >
+                  <span>Currently Sold Out</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleAddToCart}
+                    className="fk-btn-yellow py-3.5 px-4 rounded-xs uppercase font-extrabold text-sm flex items-center justify-center gap-2 tracking-wider"
+                  >
+                    <CartIcon className="w-5 h-5" />
+                    <span>Add to Cart</span>
+                  </button>
 
-              <button
-                onClick={handleBuyNow}
-                className="fk-btn-orange py-3.5 px-4 rounded-xs uppercase font-extrabold text-sm flex items-center justify-center gap-2 tracking-wider"
-              >
-                <ZapIcon className="w-5 h-5 text-white" />
-                <span>Buy at ₹{finalPrice.toLocaleString()}</span>
-              </button>
+                  <button
+                    onClick={handleBuyNow}
+                    className="fk-btn-orange py-3.5 px-4 rounded-xs uppercase font-extrabold text-sm flex items-center justify-center gap-2 tracking-wider"
+                  >
+                    <ZapIcon className="w-5 h-5 text-white" />
+                    <span>Buy at ₹{finalPrice.toLocaleString()}</span>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Instant Delivery Promise Card */}
@@ -182,12 +217,25 @@ export default function ProductDetailPage() {
             
             {/* Header: Title & Brand */}
             <div>
-              <Link
-                href={`/products?brand=${encodeURIComponent(product.brand)}`}
-                className="text-xs font-bold text-[#2874f0] uppercase tracking-wider hover:underline"
-              >
-                Visit {product.brand} Store
-              </Link>
+              <div className="flex items-center justify-between">
+                <Link
+                  href={`/products?brand=${encodeURIComponent(product.brand)}`}
+                  className="text-xs font-bold text-[#2874f0] uppercase tracking-wider hover:underline"
+                >
+                  Visit {product.brand} Store
+                </Link>
+
+                {isVariantOutOfStock ? (
+                  <span className="bg-red-100 text-red-700 text-xs font-bold uppercase px-2.5 py-0.5 rounded-xs border border-red-300">
+                    Sold Out
+                  </span>
+                ) : (
+                  <span className="bg-emerald-50 text-emerald-700 text-xs font-bold uppercase px-2 py-0.5 rounded-xs border border-emerald-200">
+                    In Stock • Ready to Deliver
+                  </span>
+                )}
+              </div>
+
               <h1 className="text-lg sm:text-xl font-bold text-gray-900 mt-1 leading-snug">
                 {product.title}
               </h1>
@@ -196,20 +244,17 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
-            {/* Rating Bar + Flipkart Assured */}
+            {/* Guarantee Strip & ShieldAssured */}
             <div className="flex items-center gap-3">
-              <div className="rating-pill-green">
-                <span>{product.rating}</span>
-                <StarIcon className="w-3 h-3" fill="white" />
-              </div>
-              <span className="text-xs text-gray-500 font-semibold">
-                {product.ratingCount.toLocaleString()} Ratings & {product.reviewCount.toLocaleString()} Reviews
-              </span>
               {product.isAssured && (
                 <div className="fk-assured-badge">
                   <span>Shield</span>Assured
                 </div>
               )}
+              <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                <ShieldCheckIcon className="w-3.5 h-3.5" />
+                100% Genuine Retail License Guarantee
+              </span>
             </div>
 
             {/* Special Price Display (Flipkart Style) */}

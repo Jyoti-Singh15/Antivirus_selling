@@ -2,15 +2,15 @@
 
 import React from "react";
 import Link from "next/link";
-import { PRODUCTS_DATA, TOP_BRANDS } from "@/data/products";
+import { TOP_BRANDS } from "@/data/products";
+import { useProducts } from "@/context/ProductsContext";
 import { HeroBanner } from "@/components/HeroBanner";
 import { TrustBar } from "@/components/TrustBar";
 import { ProductCard } from "@/components/ProductCard";
 import { ChevronRightIcon, ZapIcon, ShieldCheckIcon, KeyIcon } from "@/components/Icons";
 
 export default function HomePage() {
-  const hotDeals = PRODUCTS_DATA.filter((p) => p.isHotDeal);
-  const bestSellers = PRODUCTS_DATA.filter((p) => p.isBestSeller);
+  const { products, hotDeals, bestSellers } = useProducts();
 
   return (
     <div className="space-y-6">
@@ -21,35 +21,33 @@ export default function HomePage() {
       {/* Trust & Guarantee Strip */}
       <TrustBar />
 
-      {/* Deals of the Day Strip (Flipkart Style) */}
-      <section className="bg-white border border-gray-200 rounded-sm shadow-xs overflow-hidden">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-              <span className="text-red-500">🔥</span> Deals of the Day
-            </h2>
-            <div className="hidden sm:flex items-center gap-1.5 bg-red-50 text-red-700 text-xs font-bold px-2 py-0.5 rounded-sm border border-red-200">
-              <ZapIcon className="w-3.5 h-3.5 text-red-600" />
-              <span>Ends in 06 hrs : 42 mins</span>
+      {/* Deals of the Day Strip (Only shown when live hot deals exist) */}
+      {hotDeals.length > 0 && (
+        <section className="bg-white border border-gray-200 rounded-sm shadow-xs overflow-hidden">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <span className="text-red-500">🔥</span> Deals of the Day
+              </h2>
             </div>
+            <Link
+              href="/products"
+              className="fk-btn-yellow px-4 py-1.5 rounded-xs text-xs font-extrabold uppercase flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRightIcon className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <Link
-            href="/products"
-            className="fk-btn-yellow px-4 py-1.5 rounded-xs text-xs font-extrabold uppercase flex items-center gap-1"
-          >
-            <span>View All</span>
-            <ChevronRightIcon className="w-3.5 h-3.5" />
-          </Link>
-        </div>
 
-        {/* Product Cards Grid */}
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {hotDeals.slice(0, 4).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+          {/* Product Cards Grid */}
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {hotDeals.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Top Antivirus Brands Banner Grid */}
       <section className="bg-white border border-gray-200 rounded-sm p-4 shadow-xs">
@@ -86,7 +84,7 @@ export default function HomePage() {
               Best Sellers in Antivirus & Total Security
             </h2>
             <p className="text-xs text-gray-500">
-              Trusted by 500,000+ PC and Laptop users across India & worldwide
+              Trusted by PC and Laptop users across India & worldwide
             </p>
           </div>
           <Link
@@ -100,9 +98,19 @@ export default function HomePage() {
 
         {/* Product Cards Grid */}
         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PRODUCTS_DATA.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {products.length === 0 ? (
+            <div className="col-span-full py-12 text-center">
+              <div className="text-4xl mb-2">🛡️</div>
+              <div className="text-sm font-bold text-gray-800">Fresh Store Catalog</div>
+              <p className="text-xs text-gray-500 mt-1">
+                New antivirus products and digital keys are being added to our catalog.
+              </p>
+            </div>
+          ) : (
+            products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          )}
         </div>
       </section>
 

@@ -39,13 +39,6 @@ function LoginForm() {
     }
   };
 
-  const handleQuickDemoLogin = async () => {
-    setLoading(true);
-    await login("rahul.sharma@gmail.com", "Security2026!");
-    setLoading(false);
-    router.push(redirectPath);
-  };
-
   return (
     <div className="max-w-4xl mx-auto my-6 bg-white shadow-xl rounded-sm overflow-hidden flex flex-col md:flex-row border border-gray-200">
       {/* Left Blue Flipkart Banner */}
@@ -142,18 +135,6 @@ function LoginForm() {
               {loading ? "Signing In..." : "Sign In & Continue"}
             </button>
           </form>
-
-          {/* Quick Demo Login Link */}
-          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-            <span className="text-gray-400 text-[11px]">Testing demo account?</span>
-            <button
-              type="button"
-              onClick={handleQuickDemoLogin}
-              className="text-[#2874f0] font-semibold hover:underline text-[11px]"
-            >
-              ⚡ 1-Click Demo Login
-            </button>
-          </div>
         </div>
 
         {/* Bottom Signup Switch */}

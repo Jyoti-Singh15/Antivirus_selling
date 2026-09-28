@@ -20,9 +20,9 @@ const AUTH_STORAGE_KEY = "rapiddefend_user_session_v1";
 const TOKEN_STORAGE_KEY = "rapiddefend_user_token_v1";
 
 const API_BASE_URL =
-  process.env.NEXT_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://antivirus-selling.onrender.com/api";
+  process.env.NEXT_API_URL ||
+  "http://localhost:5000/api";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

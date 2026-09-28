@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAdminData } from "../../context/AdminDataContext";
 import { ProductModal } from "../../components/ProductModal";
 import { BulkKeyModal } from "../../components/BulkKeyModal";
@@ -16,11 +16,15 @@ const BRANDS: (Brand | "ALL")[] = [
 ];
 
 export default function ProductsPage() {
-  const { products, deleteProduct, keys } = useAdminData();
+  const { products, deleteProduct, keys, refreshData } = useAdminData();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<Brand | "ALL">("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+
+  useEffect(() => {
+    refreshData();
+  }, []);
   const [keyVaultModal, setKeyVaultModal] = useState<{ isOpen: boolean; productId?: string }>({
     isOpen: false
   });
@@ -113,19 +117,28 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Grid / Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredProducts.map((product) => {
-          const totalStock = keys.filter(
-            (k) => k.productId === product.id && k.status === "AVAILABLE"
-          ).length;
-          const minPrice = Math.min(...product.variants.map((v) => v.sellingPrice));
-          const maxPrice = Math.max(...product.variants.map((v) => v.sellingPrice));
+      {filteredProducts.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center">
+          <div className="text-4xl mb-2">🛡️</div>
+          <h3 className="text-sm font-bold text-slate-800">No Products in Catalog</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            Click "+ Add Antivirus" above to create your first product and start uploading digital license keys.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredProducts.map((product) => {
+            const totalStock = keys.filter(
+              (k) => k.productId === product.id && k.status === "AVAILABLE"
+            ).length;
+            const minPrice = Math.min(...product.variants.map((v) => v.sellingPrice));
+            const maxPrice = Math.max(...product.variants.map((v) => v.sellingPrice));
 
-          return (
-            <div
-              key={product.id}
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden flex flex-col hover:border-sky-200 transition-all group"
-            >
+            return (
+              <div
+                key={product.id}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden flex flex-col hover:border-sky-200 transition-all group"
+              >
               {/* Product Top Header */}
               <div className="p-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/50">
                 <div className="flex items-center gap-3">
@@ -234,6 +247,7 @@ export default function ProductsPage() {
           );
         })}
       </div>
+      )}
 
       {/* Modals */}
       <ProductModal

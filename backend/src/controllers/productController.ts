@@ -72,7 +72,11 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
         const variantsWithStock = await Promise.all(
           prod.variants.map(async (v) => {
             const availableCount = await LicenseKey.countDocuments({
-              productId: prod._id,
+              $or: [
+                { productId: prod._id },
+                { productId: prod._id.toString() },
+                { productTitle: prod.title },
+              ],
               variantId: v.id,
               status: "AVAILABLE",
             });
@@ -138,7 +142,11 @@ export const getPublicProductBySlug = async (req: Request, res: Response): Promi
     const variantsWithStock = await Promise.all(
       product.variants.map(async (v) => {
         const availableCount = await LicenseKey.countDocuments({
-          productId: product._id,
+          $or: [
+            { productId: product._id },
+            { productId: product._id.toString() },
+            { productTitle: product.title },
+          ],
           variantId: v.id,
           status: "AVAILABLE",
         });
