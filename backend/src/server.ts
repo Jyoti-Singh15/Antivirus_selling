@@ -21,16 +21,18 @@ const PORT = process.env.PORT || 5000;
 // Connect to Database
 connectDB();
 
-// Middlewares
+// Robust CORS configuration for local, Vercel & Render
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow all origins (localhost, Vercel deployments, mobile apps, etc.)
-      callback(null, true);
-    },
+    origin: true, // Allow any incoming origin including Vercel and localhost
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    optionsSuccessStatus: 200,
   })
 );
+app.options("*", cors()); // Enable pre-flight across-the-board
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));

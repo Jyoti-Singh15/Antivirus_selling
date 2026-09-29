@@ -84,12 +84,9 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Fetch live data from backend
   const fetchLiveData = async () => {
     try {
-      const token = localStorage.getItem("rapiddefend_admin_token_v1");
-      const authHeaders: Record<string, string> = token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
+      const token = typeof window !== "undefined" ? localStorage.getItem("rapiddefend_admin_token_v1") : null;
 
-      // 1. Fetch live products from backend
+      // 1. Fetch public products from backend
       try {
         const prodRes = await fetch(`${API_BASE_URL}/products`);
         if (prodRes.ok) {
@@ -106,6 +103,13 @@ export const AdminDataProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } catch (prodErr) {
         console.warn("Backend products sync skipped:", prodErr);
       }
+
+      // If admin is not logged in, do not spam protected admin endpoints
+      if (!token) return;
+
+      const authHeaders: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+      };
 
       // 2. Fetch live customers from backend
       try {
